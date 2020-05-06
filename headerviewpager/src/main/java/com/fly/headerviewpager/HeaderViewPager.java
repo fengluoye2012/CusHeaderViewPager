@@ -1,12 +1,15 @@
 package com.fly.headerviewpager;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.widget.LinearLayout;
 import android.widget.Scroller;
+
+import androidx.viewpager.widget.ViewPager;
 
 /**
  * 通过自定义View的方式，实现dispatchTouchEvent方法，在HeaderView 处于顶部的时候滑动
@@ -16,34 +19,69 @@ import android.widget.Scroller;
 public class HeaderViewPager extends LinearLayout {
 
     /**
-     * 可滑动的View，可以是RecyclerView,ListView,ScrollView以及WebView;
-     */
-    private View scrollableView;
-    /**
      * 用来实现View的滑动
      */
-    private Scroller scroller;
+    protected Scroller scroller;
 
     /**
      * 顶部可滑动的View
      */
-    private View headerView;
+    protected View headerView;
 
     /**
      * 最小的滑动距离
      */
-    private int minY;
+    protected int minY;
     /**
      * 可滑动的最大距离
      */
-    private int maxY;
-    private float downX;
-    private float downY;
+    protected int maxY;
+
+    /**
+     * 当前已经滑动的距离
+     */
+    protected int curY;
+
+    protected float downX;
+    protected float downY;
     /**
      * 最小滑动距离
      */
-    private int scaledTouchSlop;
-    private boolean verticalScroll;
+    protected int scaledTouchSlop;
+    /**
+     * 是否竖直方向滑动
+     */
+    protected boolean verticalScroll;
+
+    /**
+     * 最小、最大的Fling速度
+     */
+    protected int minimumFlingVelocity;
+    protected int maximumFlingVelocity;
+
+    /**
+     * headerView的高度
+     */
+    protected int headerViewHeight;
+    /**
+     * HeaderView 的偏移量
+     */
+    protected float topOffset;
+    /**
+     * 是否允许容器拦截事件
+     */
+    protected boolean disallowIntercept;
+
+    /**
+     * ViewPager
+     */
+    protected ViewPager viewPager;
+
+
+    /**
+     * 可滑动View的Helper 类
+     */
+    protected ScrollableViewHelper scrollableViewHelper;
 
     public HeaderViewPager(Context context) {
         this(context, null);
@@ -52,18 +90,25 @@ public class HeaderViewPager extends LinearLayout {
     public HeaderViewPager(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
 
+        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.HeaderViewPager);
+        topOffset = typedArray.getDimension(R.styleable.HeaderViewPager_hvp_topOffset, 0);
+        typedArray.recycle();
+
     }
 
     public HeaderViewPager(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        scaledTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         setOrientation(VERTICAL);
+        scaledTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+        minimumFlingVelocity = ViewConfiguration.get(context).getScaledMinimumFlingVelocity();
+        maximumFlingVelocity = ViewConfiguration.get(context).getScaledMaximumFlingVelocity();
         scroller = new Scroller(context);
+        scrollableViewHelper = new ScrollableViewHelper();
     }
 
+    //熟练掌握 measure 相关方法 todo
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         int childCount = getChildCount();
         if (childCount < 1) {
             throw new IllegalStateException("父容器中必须有子View");
@@ -71,16 +116,33 @@ public class HeaderViewPager extends LinearLayout {
         //将父容器中的第一个子View作为头布局
         headerView = getChildAt(0);
 
-        //todo 精确获取headerView的高度
+        measureChildWithMargins(headerView, widthMeasureSpec, 0, MeasureSpec.UNSPECIFIED, 0);
+        headerViewHeight = headerView.getMeasuredHeight();
+        //四舍五入
+        maxY = Math.round(headerViewHeight - topOffset);
+
+        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(heightMeasureSpec) + maxY, MeasureSpec.EXACTLY));
     }
 
     /**
-     * 是否不允许父容器拦截事件
+     * xml 渲染完成,设置headerView 是可点击的
+     */
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
+        if (headerView != null && !headerView.isClickable()) {
+            headerView.setClickable(true);
+        }
+    }
+
+    /**
+     * 是否不允许父容器和当前容器拦截事件
      *
      * @param disallowIntercept
      */
-    public void disallowInterceptTouchEvent(boolean disallowIntercept) {
-        disallowInterceptTouchEvent(disallowIntercept);
+    public void disallowHeaderViewPagerInterceptTouchEvent(boolean disallowIntercept) {
+        this.disallowIntercept = disallowIntercept;
+        requestDisallowInterceptTouchEvent(disallowIntercept);
     }
 
     /**
@@ -99,6 +161,7 @@ public class HeaderViewPager extends LinearLayout {
      */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 downY = ev.getY();
@@ -106,6 +169,10 @@ public class HeaderViewPager extends LinearLayout {
                 break;
 
             case MotionEvent.ACTION_MOVE:
+                if (disallowIntercept) {
+                    break;
+                }
+
                 float moveX = ev.getX();
                 float moveY = ev.getY();
                 float disX = moveX - downX;
@@ -116,33 +183,70 @@ public class HeaderViewPager extends LinearLayout {
                 //竖直方向上的滑动
                 if (Math.abs(disY) > scaledTouchSlop && Math.abs(disY) > Math.abs(disX)) {
                     verticalScroll = true;
+                }
 
-                    //手指往上滑动（scrollableView 的内容往上滑动）
-                    if (disY < 0) {
-                        //如果headerView 可见或者 scrollableView top可见 滑动headerView；
-                        if (isTop())
-                    } else {
+                if (Math.abs(disX) > scaledTouchSlop && Math.abs(disX) > Math.abs(disY)) {
+                    verticalScroll = false;
+                }
+
+                //手指往上滑动（scrollableView 的内容往上滑动）
+                if (disY < 0) {
+                    //如果headerView 可见或者 scrollableView top可见 滑动headerView；
+                    if (isTop() || scrollableViewHelper.isTop()) {
 
                     }
+                } else {
+
                 }
                 break;
 
             case MotionEvent.ACTION_UP:
                 break;
+
+            case MotionEvent.ACTION_CANCEL:
+                break;
         }
 
-        scrollableView.dispatchTouchEvent(ev);
+        super.dispatchTouchEvent(ev);
 
         return true;
     }
 
-
-    public View getScrollableView() {
-        return scrollableView;
+    /**
+     * 重写scrollBy 防止滑动越界
+     *
+     * @param x
+     * @param y
+     */
+    @Override
+    public void scrollBy(int x, int y) {
+        int scrollY = getScrollY();
+        int toY = scrollY + y;
+        if (toY >= maxY) {
+            toY = maxY;
+        } else if (toY <= minY) {
+            toY = minY;
+        }
+        //如果滑动y之后，越界，则矫正y;
+        super.scrollBy(x, toY - scrollY);
     }
 
-    public void setScrollableView(View scrollableView) {
-        this.scrollableView = scrollableView;
+    /**
+     * 重写scrollTo 防止滑动越界
+     *
+     * @param x
+     * @param y
+     */
+    @Override
+    public void scrollTo(int x, int y) {
+        if (y >= maxY) {
+            y = maxY;
+        } else if (y <= minY) {
+            y = minY;
+        }
+        curY = y;
+
+        super.scrollTo(x, y);
     }
 
     public int getMaxY() {
@@ -162,13 +266,29 @@ public class HeaderViewPager extends LinearLayout {
         this.headerView = headerView;
     }
 
+    public ViewPager getViewPager() {
+        return viewPager;
+    }
+
+    public void setViewPager(ViewPager viewPager) {
+        this.viewPager = viewPager;
+    }
+
+    public ScrollableViewHelper getScrollableViewHelper() {
+        return scrollableViewHelper;
+    }
+
+    public void setScrollableViewHelper(ScrollableViewHelper scrollableViewHelper) {
+        this.scrollableViewHelper = scrollableViewHelper;
+    }
+
     /**
      * headerView 是否在顶部
      *
      * @return
      */
     public boolean isTop() {
-        return false;
+        return curY == minY;
     }
 
     /**
@@ -177,6 +297,6 @@ public class HeaderViewPager extends LinearLayout {
      * @return
      */
     public boolean isStick() {
-        return false;
+        return curY == maxY;
     }
 }

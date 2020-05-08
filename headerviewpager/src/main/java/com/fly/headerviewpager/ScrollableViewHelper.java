@@ -103,19 +103,14 @@ public class ScrollableViewHelper {
         return false;
     }
 
-    public void fling(int yVelocity) {
-        if (scrollableView == null) {
-            throw new NullPointerException("scrollableView can not null");
-        }
-
+    public void fling(int yVelocity, int distance, int duration) {
         if (scrollableView instanceof RecyclerView) {
             ((RecyclerView) scrollableView).fling(0, yVelocity);
         } else if (scrollableView instanceof AbsListView) {
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 ((AbsListView) scrollableView).fling(yVelocity);
             } else {
-                //((AbsListView) scrollableView).smoothScrollBy(yVelocity);
+                ((AbsListView) scrollableView).smoothScrollBy(distance, duration);
             }
         } else if (scrollableView instanceof ScrollView) {
             ((ScrollView) scrollableView).fling(yVelocity);

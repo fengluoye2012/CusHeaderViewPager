@@ -2,6 +2,7 @@ package com.fly.headerviewpager;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -21,7 +22,9 @@ import androidx.viewpager.widget.ViewPager;
  */
 public class HeaderViewPager extends LinearLayout {
 
+    //手指往下滑动
     protected static final int DIRECTION_UP = 1;
+    //手指往上滑动
     protected static final int DIRECTION_DOWN = 2;
 
     /**
@@ -193,7 +196,7 @@ public class HeaderViewPager extends LinearLayout {
      * <p>
      * 惯性滑动：计算出惯性速度，传递给scrollableView
      * <p>
-     *
+     * Scroller 类的主要方法含义搞清楚 todo
      * @param ev
      * @return 返回true表示事件被当前容器或者其子View消费；
      */
@@ -264,6 +267,8 @@ public class HeaderViewPager extends LinearLayout {
 
             case MotionEvent.ACTION_UP:
 
+                //为什么松手的时候，要考虑执行scroller.fling()；调用scroller.fling()方法会执行computeScroll()方法吗
+                //根据Scroller类解释可知，调用startScroll()、fling()方法之后，会不断的调用View的computeScroll()，根据computeScrollOffset()判断滑动动画是否结束
                 //竖直方向滑动，已经滑动最大距离或者scrollableView处于顶部，避免松手之后
                 if (verticalScroll && (scrollableViewHelper.isTop() || isStick())) {
                     velocityTracker.addMovement(ev);
@@ -276,8 +281,10 @@ public class HeaderViewPager extends LinearLayout {
 
                     mDirection = yVelocity > 0 ? DIRECTION_DOWN : DIRECTION_UP;  //下滑速度大于0，上滑速度小于0
 
+                    //
                     scroller.fling(0, getScrollY(), 0, yVelocity,
                             Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                    invalidate();
                 }
                 resetVelocityTracker();
 
@@ -294,7 +301,7 @@ public class HeaderViewPager extends LinearLayout {
 
 
     /**
-     * 该方法只有在
+     * 父容器调用request()方法，获取getScrollX(),getScrollY()时调用
      */
     @Override
     public void computeScroll() {
@@ -302,13 +309,41 @@ public class HeaderViewPager extends LinearLayout {
         //返回true 表示动画没有执行完成
         if (scroller.computeScrollOffset()) {
             Log.i(TAG, "computeScroll");
+            int scrollY = getScrollY();
+            //手指往上滑动
+            if (mDirection == DIRECTION_UP) {
+                //如果header已经固定，则scrollableView 按照惯性继续滑动
+                if (isStick()) {
+                    //主要是将快速滚动时的速度对接起来，让布局看起来滚动连贯
+                    int distance = scroller.getFinalY() - scrollY;//除去布局滚动的距离，剩下的距离
+                    int duration = scroller.getDuration() - scroller.timePassed();//除去滚动消费的时间，剩余的事件；
+                    int yVelocity = calculateVelocity(distance, duration);
+                    scrollableViewHelper.fling(yVelocity, distance, duration);
+                } else {
+                    //todo 既然动画没有执行完成，正常执行下去可以吗，这样会有什么问题呢
 
-            if (mDirection == DIRECTION_DOWN) {
+                }
+                //手指往下滑动
+            } else if (mDirection == DIRECTION_DOWN) {
+                if (isStick()) {
 
-            } else if (mDirection == DIRECTION_UP) {
-
+                }
             }
         }
+    }
+
+    /**
+     * 获取滑动的速度
+     *
+     * @param distance
+     * @param duration
+     * @return
+     */
+    private int calculateVelocity(int distance, int duration) {
+        if (scroller == null) {
+            return 0;
+        }
+        return (int) scroller.getCurrVelocity();
     }
 
     /**

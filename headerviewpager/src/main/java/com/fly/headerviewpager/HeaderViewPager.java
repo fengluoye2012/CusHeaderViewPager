@@ -3,11 +3,14 @@ package com.fly.headerviewpager;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.widget.LinearLayout;
 import android.widget.Scroller;
+import android.widget.TextView;
 
 import androidx.viewpager.widget.ViewPager;
 
@@ -17,6 +20,9 @@ import androidx.viewpager.widget.ViewPager;
  * 实现View的遍历（深度和广度） todo
  */
 public class HeaderViewPager extends LinearLayout {
+
+    protected static final int DIRECTION_UP = 1;
+    protected static final int DIRECTION_DOWN = 2;
 
     /**
      * 用来实现View的滑动
@@ -44,6 +50,10 @@ public class HeaderViewPager extends LinearLayout {
 
     protected float downX;
     protected float downY;
+
+    protected float lastX;
+    protected float lastY;
+
     /**
      * 最小滑动距离
      */
@@ -77,11 +87,25 @@ public class HeaderViewPager extends LinearLayout {
      */
     protected ViewPager viewPager;
 
+    /**
+     * 是否点击到头部
+     */
+    protected boolean isClickHead;
 
     /**
      * 可滑动View的Helper 类
      */
     protected ScrollableViewHelper scrollableViewHelper;
+    /**
+     * 用来获取速度
+     */
+    private VelocityTracker velocityTracker;
+    /**
+     * 滑动的方向
+     */
+    private int mDirection;
+
+    private String TAG = HeaderViewPager.class.getSimpleName();
 
     public HeaderViewPager(Context context) {
         this(context, null);
@@ -106,7 +130,20 @@ public class HeaderViewPager extends LinearLayout {
         scrollableViewHelper = new ScrollableViewHelper();
     }
 
-    //熟练掌握 measure 相关方法 todo
+    /**
+     * 熟练掌握 measure 相关方法
+     * <p>
+     * MeasureSpec 是由32位int值组成，前两位表示Mode，后30位表示某种测量模式下的测量大小Size
+     * <p>
+     * mode分为三种EXACTLY, AT_MOST, UNSPECIFIED
+     * <p>
+     * EXACTLY 父容器和当前View的尺寸 是具体的值或者Match_Parent   size就是View的尺寸
+     * AT_MOST 父容器是具体的值或者Match_Parent，当前View的尺寸是wrap_content   size是View可显示的最大尺寸，View的具体尺寸需要测量；
+     * UNSPECIFIED 能有多大就是多大一般是系统使用
+     *
+     * @param widthMeasureSpec  由父容器和自己的layoutParams决定的
+     * @param heightMeasureSpec
+     */
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int childCount = getChildCount();
@@ -121,6 +158,7 @@ public class HeaderViewPager extends LinearLayout {
         //四舍五入
         maxY = Math.round(headerViewHeight - topOffset);
 
+        //makeMeasureSpec 根据size和mode创建新的heightMeasureSpec；
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(heightMeasureSpec) + maxY, MeasureSpec.EXACTLY));
     }
 
@@ -162,10 +200,21 @@ public class HeaderViewPager extends LinearLayout {
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
 
+        obtainVelocityTracker();
+
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                verticalScroll = false;
                 downY = ev.getY();
                 downX = ev.getX();
+
+                lastX = downX;
+                lastY = downY;
+
+                mDirection = 0;
+                //手指再次按下，终止上一次的滑动
+                scroller.abortAnimation();
+                isClickHeader(ev);
                 break;
 
             case MotionEvent.ACTION_MOVE:
@@ -175,10 +224,14 @@ public class HeaderViewPager extends LinearLayout {
 
                 float moveX = ev.getX();
                 float moveY = ev.getY();
+
+
+                //move和down之前的差值
                 float disX = moveX - downX;
                 float disY = moveY - downY;
 
-                verticalScroll = false;
+                //两次move 之间的距离
+                float moveDisY = moveY - lastY;
 
                 //竖直方向上的滑动
                 if (Math.abs(disY) > scaledTouchSlop && Math.abs(disY) > Math.abs(disX)) {
@@ -189,27 +242,84 @@ public class HeaderViewPager extends LinearLayout {
                     verticalScroll = false;
                 }
 
-                //手指往上滑动（scrollableView 的内容往上滑动）
-                if (disY < 0) {
-                    //如果headerView 可见或者 scrollableView top可见 滑动headerView；
-                    if (isTop() || scrollableViewHelper.isTop()) {
-
+                //如果是竖直方向滑动
+                if (verticalScroll) {
+                    //手指往上滑动（scrollableView 的内容往上滑动）
+                    if (disY < 0) {
+                        //如果headerView 可见或者 scrollableView top可见 滑动headerView；
+                        if (isTop() || scrollableViewHelper.isTop() || !isClickHead) {
+                            scrollBy(0, Math.round(moveDisY));
+                        }
+                    } else {
+                        if (scrollableViewHelper.isTop() || !isClickHead) {
+                            scrollBy(0, Math.round(moveDisY));
+                        }
                     }
-                } else {
-
                 }
+
+                lastX = moveX;
+                lastY = moveY;
+
                 break;
 
             case MotionEvent.ACTION_UP:
+
+                //竖直方向滑动，已经滑动最大距离或者scrollableView处于顶部，避免松手之后
+                if (verticalScroll && (scrollableViewHelper.isTop() || isStick())) {
+                    velocityTracker.addMovement(ev);
+
+                    //获取1000ms允许滑动的最大距离是 maximumFlingVelocity
+                    velocityTracker.computeCurrentVelocity(1000, maximumFlingVelocity);
+                    //获取当前的速度
+                    int yVelocity = (int) velocityTracker.getYVelocity();
+                    Log.i(TAG, "yVelocity::" + yVelocity);
+
+                    mDirection = yVelocity > 0 ? DIRECTION_DOWN : DIRECTION_UP;  //下滑速度大于0，上滑速度小于0
+
+                    scroller.fling(0, getScrollY(), 0, yVelocity,
+                            Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                }
+                resetVelocityTracker();
+
                 break;
 
             case MotionEvent.ACTION_CANCEL:
+                resetVelocityTracker();
                 break;
         }
-
         super.dispatchTouchEvent(ev);
 
         return true;
+    }
+
+
+    /**
+     * 该方法只有在
+     */
+    @Override
+    public void computeScroll() {
+        super.computeScroll();
+        //返回true 表示动画没有执行完成
+        if (scroller.computeScrollOffset()) {
+            Log.i(TAG, "computeScroll");
+
+            if (mDirection == DIRECTION_DOWN) {
+
+            } else if (mDirection == DIRECTION_UP) {
+
+            }
+        }
+    }
+
+    /**
+     * 是否点击在Header
+     * getY() 表示对于父容器top 的位置
+     *
+     * @param ev
+     * @return
+     */
+    private void isClickHeader(MotionEvent ev) {
+        isClickHead = ev.getY() + getScrollY() <= maxY;
     }
 
     /**
@@ -227,6 +337,7 @@ public class HeaderViewPager extends LinearLayout {
         } else if (toY <= minY) {
             toY = minY;
         }
+
         //如果滑动y之后，越界，则矫正y;
         super.scrollBy(x, toY - scrollY);
     }
@@ -298,5 +409,26 @@ public class HeaderViewPager extends LinearLayout {
      */
     public boolean isStick() {
         return curY == maxY;
+    }
+
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+
+    }
+
+    private void resetVelocityTracker() {
+        if (velocityTracker != null) {
+            velocityTracker.clear();
+            velocityTracker.recycle();
+            velocityTracker = null;
+        }
+    }
+
+    private void obtainVelocityTracker() {
+        if (velocityTracker == null) {
+            velocityTracker = VelocityTracker.obtain();
+        }
     }
 }

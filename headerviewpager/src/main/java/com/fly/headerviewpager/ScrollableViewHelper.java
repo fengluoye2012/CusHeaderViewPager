@@ -1,7 +1,9 @@
 package com.fly.headerviewpager;
 
+import android.os.Build;
 import android.view.View;
 import android.webkit.WebView;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ScrollView;
 
@@ -99,5 +101,26 @@ public class ScrollableViewHelper {
             return true;
         }
         return false;
+    }
+
+    public void fling(int yVelocity) {
+        if (scrollableView == null) {
+            throw new NullPointerException("scrollableView can not null");
+        }
+
+        if (scrollableView instanceof RecyclerView) {
+            ((RecyclerView) scrollableView).fling(0, yVelocity);
+        } else if (scrollableView instanceof AbsListView) {
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                ((AbsListView) scrollableView).fling(yVelocity);
+            } else {
+                //((AbsListView) scrollableView).smoothScrollBy(yVelocity);
+            }
+        } else if (scrollableView instanceof ScrollView) {
+            ((ScrollView) scrollableView).fling(yVelocity);
+        } else if (scrollableView instanceof WebView) {
+            ((WebView) scrollableView).flingScroll(0, yVelocity);
+        }
     }
 }

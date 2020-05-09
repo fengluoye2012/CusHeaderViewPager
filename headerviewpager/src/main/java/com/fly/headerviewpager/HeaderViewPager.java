@@ -28,7 +28,8 @@ public class HeaderViewPager extends LinearLayout {
     protected static final int DIRECTION_DOWN = 2;
 
     /**
-     * 用来实现View的滑动
+     * 滑动辅助类,Scroller本身不会去移动View，它只是一个移动计算辅助类，用于跟踪控件滑动的轨迹，只相当于一个滚动轨迹记录工具，
+     * 最终还是通过View的scrollTo、scrollBy方法完成View的移动的。
      */
     protected Scroller scroller;
 
@@ -320,7 +321,7 @@ public class HeaderViewPager extends LinearLayout {
                     int yVelocity = calculateVelocity(distance, duration);
                     scrollableViewHelper.fling(yVelocity, distance, duration);
                 } else {
-                    //todo 既然动画没有执行完成，正常执行下去可以吗，这样会有什么问题呢
+                    //由于Scroller是滑动辅助类，用于跟踪空间滑动
 
                 }
                 //手指往下滑动

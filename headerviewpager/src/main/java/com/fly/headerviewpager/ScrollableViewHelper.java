@@ -13,24 +13,19 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class ScrollableViewHelper {
 
-    /**
-     * 可滑动的View，可以是RecyclerView,ListView等
-     */
-    private View scrollableView;
+
+    private ScrollableInterface scrollableInterface;
 
     public ScrollableViewHelper() {
 
     }
 
-    public View getScrollableView() {
-        return scrollableView;
-    }
-
-    public void setScrollableView(View scrollableView) {
-        this.scrollableView = scrollableView;
+    public void setScrollableView(ScrollableInterface scrollableInterface) {
+        this.scrollableInterface = scrollableInterface;
     }
 
     public boolean isTop() {
+        View scrollableView = scrollableInterface.getScrollableView();
         if (scrollableView == null) {
             throw new NullPointerException("scrollableView can not null");
         }
@@ -86,7 +81,6 @@ public class ScrollableViewHelper {
 
     private boolean isScrollViewViewTop(ScrollView scrollView) {
         View childAt = scrollView.getChildAt(0);
-        int scrollY = scrollView.getScrollY();
 
         if (childAt == null || childAt.getTop() == 0) {
             return true;
@@ -96,7 +90,6 @@ public class ScrollableViewHelper {
 
     private boolean isWebViewTop(WebView webView) {
         View childAt = webView.getChildAt(0);
-        int scrollY = webView.getScrollY();
         if (childAt == null || childAt.getTop() == 0) {
             return true;
         }
@@ -104,6 +97,8 @@ public class ScrollableViewHelper {
     }
 
     public void fling(int yVelocity, int distance, int duration) {
+        View scrollableView = scrollableInterface.getScrollableView();
+
         if (scrollableView instanceof RecyclerView) {
             ((RecyclerView) scrollableView).fling(0, yVelocity);
         } else if (scrollableView instanceof AbsListView) {

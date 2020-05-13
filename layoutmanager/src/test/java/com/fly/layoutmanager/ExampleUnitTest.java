@@ -1,4 +1,4 @@
-package com.fly.cusheaderviewpager;
+package com.fly.layoutmanager;
 
 import org.junit.Test;
 

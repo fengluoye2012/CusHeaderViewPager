@@ -1,4 +1,4 @@
-package com.fly.cusheaderviewpager;
+package com.fly.layoutmanager;
 
 import android.content.Context;
 
@@ -22,6 +22,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.fly.cusheaderviewpager", appContext.getPackageName());
+        assertEquals("com.fly.layoutmanager.test", appContext.getPackageName());
     }
 }

@@ -34,6 +34,8 @@ dependencies {
     implementation project(':headerviewpager')
     implementation "androidx.core:core-ktx:1.2.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    implementation 'com.blankj:utilcodex:1.28.4'
 }
 repositories {
     mavenCentral()

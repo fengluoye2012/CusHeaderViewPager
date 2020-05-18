@@ -36,7 +36,7 @@
 
 ### View的Measure过程
    - TextView的onMeasure方法：https://baijiahao.baidu.com/s?id=1610594234856004834&wfr=spider&for=pc
-   - ndroid之TextView文字绘制流程：https://www.cnblogs.com/bvin/p/5370490.html
+   - android之TextView文字绘制流程：https://www.cnblogs.com/bvin/p/5370490.html
 
 
 ### Kotlin

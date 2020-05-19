@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 class ViewPagerLayoutManager : LinearLayoutManager {
 
     private var recyclerView: RecyclerView? = null
-    private var pagerSnapHelper: PagerSnapHelper? = null
+    private lateinit var pagerSnapHelper: PagerSnapHelper
 
     constructor(context: Context) : super(context) {
         init()
@@ -38,7 +38,7 @@ class ViewPagerLayoutManager : LinearLayoutManager {
     override fun onAttachedToWindow(view: RecyclerView?) {
         super.onAttachedToWindow(view)
 
-        pagerSnapHelper!!.attachToRecyclerView(recyclerView)
+        pagerSnapHelper.attachToRecyclerView(recyclerView)
     }
 
     override fun onDetachedFromWindow(view: RecyclerView, recycler: RecyclerView.Recycler?) {

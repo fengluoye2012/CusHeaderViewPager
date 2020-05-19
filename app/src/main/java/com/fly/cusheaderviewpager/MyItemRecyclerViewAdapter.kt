@@ -1,16 +1,12 @@
 package com.fly.cusheaderviewpager
 
-import android.util.SparseArray
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-
 import androidx.recyclerview.widget.RecyclerView
-
+import com.fly.basemodule.CusViewHolder
 import com.fly.cusheaderviewpager.dummy.DummyContent.DummyItem
-import com.fly.headerviewpager.CusViewHolder
 
 
 class MyItemRecyclerViewAdapter(private val mValues: List<DummyItem>) : RecyclerView.Adapter<CusViewHolder>() {

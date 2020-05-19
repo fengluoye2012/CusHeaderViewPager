@@ -1,1 +1,1 @@
-include ':app', ':headerviewpager', ':layoutmanager'
+include ':app', ':headerviewpager', ':layoutmanager', ':basemodule'

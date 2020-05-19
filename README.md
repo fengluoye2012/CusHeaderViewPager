@@ -34,5 +34,20 @@
         然后取得计算出的当前滑动的偏移坐标，调用View的scrollTo()方法进行滑动控制，最后也需要调用invalidate()；进行重绘。
 
 
+### View的Measure过程
+   - TextView的onMeasure方法：https://baijiahao.baidu.com/s?id=1610594234856004834&wfr=spider&for=pc
+   - android之TextView文字绘制流程：https://www.cnblogs.com/bvin/p/5370490.html
+
+
+### Kotlin
+   - 没有static 关键字，没有静态变量和静态方法
+
+   - object 关键字
+     object关键字的使用场景：https://blog.csdn.net/xlh1191860939/article/details/79460601
+   - 延时加载
+   - 单例模式
+     Kotlin下的5种单例 https://www.jianshu.com/p/5797b3d0ebd0
+   - 协程
+
 ### git push 流程：
 - https://www.cnblogs.com/yorkmass/p/11109817.html

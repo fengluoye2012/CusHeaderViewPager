@@ -30,6 +30,17 @@
                 android:includeFontPadding="false"
                 android:text="风落叶20120风落叶20120风落叶20120风落叶20120风落叶20120风落叶20120"
                 android:textSize="20sp" />
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:background="#ECDFDF" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="风落叶" />
         </LinearLayout>
 
         <TextView

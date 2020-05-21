@@ -51,3 +51,12 @@
 
 ### git push 流程：
 - https://www.cnblogs.com/yorkmass/p/11109817.html
+
+### AndroidVideoCache
+  - 文件缓存原理：断点下载
+  - Android Okhttp 断点续传面试解析：https://blog.csdn.net/weixin_33985507/article/details/91391972?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase
+  - HttpUrlConnection 是同步请求，必须在子线程中使用；
+  - http 是超文本传输协议，其是基于tcp/ip协议。本质上首先我们是需要借助系统开启socket监听，然后使用tcp传输协议，传输数据包，
+    将数据包凭借成http request和response，这就成了http协议；
+  - 如何自定义代理服务器，模拟客户端请求、服务端相应  参考Android通过socket连接服务器
+

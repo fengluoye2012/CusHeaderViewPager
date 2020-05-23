@@ -1,1 +1,1 @@
-include ':app', ':headerviewpager', ':layoutmanager', ':basemodule'
+include ':app', ':headerviewpager', ':layoutmanager', ':basemodule', ':androidvideocache'

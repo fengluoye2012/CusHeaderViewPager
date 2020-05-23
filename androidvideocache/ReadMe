@@ -1,0 +1,35 @@
+### AndroidVideoCache 通过本地代理服务器的方式将视频文件缓存下来，
+    然后socket将文件流返回给播放器播放
+
+#### 考虑如何实现代码拆分，解偶、易于扩展
+
+### 主要技能点
+    - 断点下载：http Range 的使用，设置每次请求的文件长度
+      Http 请求头 Range：https://www.cnblogs.com/1995hxt/p/5692050.html
+
+      Range请求头格式
+      Range:bytes=start-end
+      例：
+      Range: bytes=10-: 第10个字节及最后个字节的数据
+      Range: bytes=40-100 ：第40个字节到第100个字节之间的数据
+      HttpUrlConnection设置：
+      connection.setRequestProperty("Range", "bytes=" + start + "-" + end);
+    - RandomAccessFile 的使用
+    - 网络请求方式扩展 OkHttp、HttpUrlConnection
+    - 本地代理服务
+    - 文件的预缓存，至于缓存500K；
+    - 播放器缓存区长度的设置
+
+#### Android HttpUrlConnection 断点下载:https://www.jianshu.com/p/20f6debd7621
+
+#### 断点下载：http Range 的使用，设置每次请求的文件长度
+     Http 请求头 Range：https://www.cnblogs.com/1995hxt/p/5692050.html
+     Range请求头格式：Range:bytes=start-end
+     例：
+     Range: bytes=10-: 第10个字节及最后个字节的数据
+     Range: bytes=40-100 ：第40个字节到第100个字节之间的数据
+     HttpUrlConnection设置：connection.setRequestProperty("Range", "bytes=" + start + "-" + end);
+
+#### RandomAccessFile介绍与使用demo：https://blog.csdn.net/android_zyf/article/details/63428241
+
+

@@ -2,7 +2,7 @@ package com.fly.androidvideocache.cache;
 
 import android.os.Environment;
 
-import com.fly.androidvideocache.down.DownLoad;
+import com.fly.androidvideocache.source.DownLoad;
 
 import java.io.File;
 import java.io.IOException;
@@ -76,6 +76,6 @@ class CacheImpl implements Cache {
     }
 
     private void tryComplete() {
-        
+
     }
 }

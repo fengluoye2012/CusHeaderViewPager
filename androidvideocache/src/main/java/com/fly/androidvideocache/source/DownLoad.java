@@ -1,6 +1,5 @@
-package com.fly.androidvideocache.down;
+package com.fly.androidvideocache.source;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;

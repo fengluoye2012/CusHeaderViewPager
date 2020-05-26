@@ -3,6 +3,11 @@
 
 #### 考虑如何实现代码拆分，解偶、易于扩展
 
+- Android 基于LocalSocket实现本地多媒体流式播放：https://blog.csdn.net/zxfrdas/article/details/51934470
+- ServerSocket详解：https://www.jianshu.com/p/665994c2e784
+- Socket和ServerSocket的简单介绍及例子：https://blog.csdn.net/qq_41517936/article/details/81015711
+
+
 ### 主要技能点
     - 断点下载：http Range 的使用，设置每次请求的文件长度
       Http 请求头 Range：https://www.cnblogs.com/1995hxt/p/5692050.html
@@ -31,5 +36,7 @@
      HttpUrlConnection设置：connection.setRequestProperty("Range", "bytes=" + start + "-" + end);
 
 #### RandomAccessFile介绍与使用demo：https://blog.csdn.net/android_zyf/article/details/63428241
+
+
 
 

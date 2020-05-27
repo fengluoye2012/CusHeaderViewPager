@@ -7,7 +7,9 @@
 - ServerSocket详解：https://www.jianshu.com/p/665994c2e784
 - Socket和ServerSocket的简单介绍及例子：https://blog.csdn.net/qq_41517936/article/details/81015711
 - ServerSocket实现超简单HTTP服务器：https://www.cnblogs.com/yunlongaimeng/p/9470865.html
-
+- 如何显示一次网络请求，服务端如何监听到客户端的请求；
+- 视频播放器请求资源的过程，是长链接、还是短链接，是断点请求还是一次网络请求；
+- 学点服务端开发，加深了解网络请求的原理
 
 ### 主要技能点
     - 断点下载：http Range 的使用，设置每次请求的文件长度

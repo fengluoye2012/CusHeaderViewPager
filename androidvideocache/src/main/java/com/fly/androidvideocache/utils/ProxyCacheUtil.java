@@ -14,12 +14,11 @@ import java.util.Arrays;
 
 import static androidx.core.util.Preconditions.checkArgument;
 import static androidx.core.util.Preconditions.checkNotNull;
+import static com.fly.androidvideocache.utils.ConstantUtil.MAX_ARRAY_PREVIEW;
 
 public class ProxyCacheUtil {
     private static String TAG = ProxyCacheUtil.class.getSimpleName();
 
-    public static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
-    public static final int MAX_ARRAY_PREVIEW = 16;
 
     public static String getSupportiveMime(String url) {
         MimeTypeMap mimes = MimeTypeMap.getSingleton();

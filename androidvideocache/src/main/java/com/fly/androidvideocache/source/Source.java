@@ -1,11 +1,14 @@
 package com.fly.androidvideocache.source;
 
+import com.fly.androidvideocache.utils.ProxyCacheException;
+
 public interface Source {
-    long length();
 
-    void open(long offset);
+    void open(long offset) throws ProxyCacheException;
 
-    void read(byte[] buffer);
+    int read(byte[] buffer) throws ProxyCacheException;
+
+    long length() throws ProxyCacheException;
 
     void close();
 }

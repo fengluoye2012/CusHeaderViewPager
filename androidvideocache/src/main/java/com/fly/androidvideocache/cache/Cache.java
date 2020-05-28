@@ -1,9 +1,20 @@
 package com.fly.androidvideocache.cache;
 
 public interface Cache {
-    public boolean complete();
+    /**
+     * 已经缓存的文件长度
+     *
+     * @return
+     */
+    long available();
 
-    public int getAvailableLength();
+    int read(byte[] buffer, long offset, int length);
 
-    public void cache();
+    void append(byte[] data, int length);
+
+    void close();
+
+    boolean complete();
+
+    boolean isComplete();
 }

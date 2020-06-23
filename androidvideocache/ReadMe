@@ -38,7 +38,8 @@
      Range: bytes=40-100 ：第40个字节到第100个字节之间的数据
      HttpUrlConnection设置：connection.setRequestProperty("Range", "bytes=" + start + "-" + end);
 
-#### RandomAccessFile介绍与使用demo：https://blog.csdn.net/android_zyf/article/details/63428241
+#### RandomAccessFile介绍与使用demo：
+https://blog.csdn.net/android_zyf/article/details/63428241
 
 
 

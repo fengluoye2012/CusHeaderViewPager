@@ -1,7 +1,9 @@
-package com.fly.androidvideocache.utils;
+package com.fly.androidvideocache.proxy;
 
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
+
+import com.fly.androidvideocache.utils.LogUtil;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -14,24 +16,24 @@ import java.util.Arrays;
 
 import static androidx.core.util.Preconditions.checkArgument;
 import static androidx.core.util.Preconditions.checkNotNull;
-import static com.fly.androidvideocache.utils.ConstantUtil.MAX_ARRAY_PREVIEW;
 
-public class ProxyCacheUtil {
-    private static String TAG = ProxyCacheUtil.class.getSimpleName();
+public class ProxyCacheUtils {
+    static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
+    static final int MAX_ARRAY_PREVIEW = 16;
 
-    public static String getSupportiveMime(String url) {
+    static String getSupposablyMime(String url) {
         MimeTypeMap mimes = MimeTypeMap.getSingleton();
         String extension = MimeTypeMap.getFileExtensionFromUrl(url);
         return TextUtils.isEmpty(extension) ? null : mimes.getMimeTypeFromExtension(extension);
     }
 
-    public static void assertBuffer(byte[] buffer, long offset, int length) {
+    static void assertBuffer(byte[] buffer, long offset, int length) {
         checkNotNull(buffer, "Buffer must be not null!");
         checkArgument(offset >= 0, "Data offset must be positive!");
         checkArgument(length >= 0 && length <= buffer.length, "Length must be in range [0..buffer.length]");
     }
 
-    public static String preview(byte[] data, int length) {
+    static String preview(byte[] data, int length) {
         int previewLength = Math.min(MAX_ARRAY_PREVIEW, Math.max(length, 0));
         byte[] dataRange = Arrays.copyOfRange(data, 0, previewLength);
         String preview = Arrays.toString(dataRange);
@@ -41,7 +43,7 @@ public class ProxyCacheUtil {
         return preview;
     }
 
-    public static String encode(String url) {
+    static String encode(String url) {
         try {
             return URLEncoder.encode(url, "utf-8");
         } catch (UnsupportedEncodingException e) {
@@ -49,7 +51,7 @@ public class ProxyCacheUtil {
         }
     }
 
-    public static String decode(String url) {
+    static String decode(String url) {
         try {
             return URLDecoder.decode(url, "utf-8");
         } catch (UnsupportedEncodingException e) {
@@ -57,12 +59,12 @@ public class ProxyCacheUtil {
         }
     }
 
-    public static void close(Closeable closeable) {
+    static void close(Closeable closeable) {
         if (closeable != null) {
             try {
                 closeable.close();
             } catch (IOException e) {
-                LogUtil.e(TAG, "Error closing resource" + e);
+                LogUtil.e("Error closing resource：" + e);
             }
         }
     }

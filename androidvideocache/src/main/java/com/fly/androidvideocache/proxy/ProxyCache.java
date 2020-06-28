@@ -1,8 +1,11 @@
 package com.fly.androidvideocache.proxy;
 
+import android.util.Log;
+
 import com.fly.androidvideocache.cache.Cache;
 import com.fly.androidvideocache.source.Source;
 import com.fly.androidvideocache.utils.ConstantUtil;
+import com.fly.androidvideocache.utils.LogUtil;
 import com.fly.androidvideocache.utils.ProxyCacheException;
 import com.fly.androidvideocache.utils.ProxyCacheUtil;
 
@@ -14,11 +17,14 @@ import static androidx.core.util.Preconditions.checkNotNull;
  * Cache 静态代理类
  */
 public class ProxyCache {
-    private Source source;
-    private Cache cache;
-    private Object wc = new Object();
-    private Object stopLock = new Object();
-    private AtomicInteger readSourceErrorsCount;//读取资源错误次数
+
+    private static final int MAX_READ_SOURCE_ATTEMPTS = 1;
+
+    private final Source source;
+    private final Cache cache;
+    private final Object wc = new Object();
+    private final Object stopLock = new Object();
+    private final AtomicInteger readSourceErrorsCount;//读取资源错误次数
     private volatile Thread sourceReadThread;//异步读取数据线程
     private volatile boolean stopped;//读取过程是否暂停
     private volatile int percentsAvailable = -1;//文件缓存进度
@@ -47,7 +53,7 @@ public class ProxyCache {
         return read;
     }
 
-    //
+    //开启异步线程读取数据
     private void readSourceAsync() {
         //正在读取中
         boolean readingInProgress = sourceReadThread != null && sourceReadThread.getState() != Thread.State.TERMINATED;
@@ -57,18 +63,44 @@ public class ProxyCache {
         }
     }
 
-    private void waitForSourceData() {
-
+    private void waitForSourceData() throws ProxyCacheException {
+        synchronized (wc) {
+            try {
+                wc.wait(1000);
+            } catch (InterruptedException e) {
+                throw new ProxyCacheException("Waiting source data is interrupted!", e);
+            }
+        }
     }
 
-    private void checkReadSourceErrorCount() {
+    private void checkReadSourceErrorCount() throws ProxyCacheException {
+        int errorsCount = readSourceErrorsCount.get();
+        if (errorsCount >= MAX_READ_SOURCE_ATTEMPTS) {
+            readSourceErrorsCount.set(0);
+            throw new ProxyCacheException("Error reading source " + errorsCount + " times");
+        }
+    }
 
+    //终止异步读取数据
+    public void shutDown() {
+        synchronized (stopLock) {
+            LogUtil.d("Shutdown proxy for " + source);
+
+            try {
+                stopped = true;
+                if (sourceReadThread != null) {
+                    sourceReadThread.interrupt();
+                }
+                cache.close();
+            } catch (ProxyCacheException e) {
+                onError(e);
+            }
+        }
     }
 
     protected void onCachePercentsAvailableChanged(int percentsAvailable) {
 
     }
-
 
     private class SourceReaderRunnable implements Runnable {
         @Override
@@ -103,13 +135,11 @@ public class ProxyCache {
         } catch (Throwable e) {
             readSourceErrorsCount.incrementAndGet();
             onError(e);
-        }finally {
+        } finally {
             closeSource();
-            notifyNewCacheDataAvailable(offset,sourceAvailable);
+            notifyNewCacheDataAvailable(offset, sourceAvailable);
         }
     }
-
-
 
 
     private boolean isStopped() {
@@ -151,10 +181,19 @@ public class ProxyCache {
     }
 
     private void closeSource() {
-
+        try {
+            source.close();
+        } catch (ProxyCacheException e) {
+            onError(new ProxyCacheException("Error closing source " + source, e));
+        }
     }
 
     private void onError(Throwable e) {
-
+        boolean interruption = e instanceof InterruptedProxyCacheException;
+        if (interruption) {
+            LogUtil.d("ProxyCache is interrupted");
+        } else {
+            LogUtil.e("ProxyCache error" + Log.getStackTraceString(e));
+        }
     }
 }

@@ -10,5 +10,5 @@ public interface Source {
 
     long length() throws ProxyCacheException;
 
-    void close();
+    void close() throws ProxyCacheException;
 }

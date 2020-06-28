@@ -128,7 +128,7 @@ public class HttpUrlSource implements Source {
 
 
     @Override
-    public void close() {
+    public void close() throws ProxyCacheException {
         if (connection != null) {
             try {
                 connection.disconnect();

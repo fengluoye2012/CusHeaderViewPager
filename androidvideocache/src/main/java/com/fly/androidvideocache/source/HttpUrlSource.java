@@ -3,17 +3,21 @@ package com.fly.androidvideocache.source;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.fly.androidvideocache.headerInjector.EmptyHeaderInjector;
+import com.fly.androidvideocache.headerInjector.HeaderInjector;
+import com.fly.androidvideocache.proxy.ProxyCacheUtils;
 import com.fly.androidvideocache.sourcestorage.SourceInfoStorage;
 import com.fly.androidvideocache.sourcestorage.SourceInfoStorageFactory;
 import com.fly.androidvideocache.utils.ConstantUtil;
 import com.fly.androidvideocache.utils.LogUtil;
 import com.fly.androidvideocache.utils.ProxyCacheException;
-import com.fly.androidvideocache.utils.ProxyCacheUtil;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Map;
+import java.util.Set;
 
 import static androidx.core.util.Preconditions.checkNotNull;
 import static com.fly.androidvideocache.utils.ConstantUtil.DEFAULT_BUFFER_SIZE;
@@ -26,15 +30,28 @@ public class HttpUrlSource implements Source {
     private final int MAX_REDIRECTS = 3;//最大重定向次数
     private BufferedInputStream inputStream;
     private HttpURLConnection connection;
+    private HeaderInjector headerInjector;
 
     public HttpUrlSource(String url) {
         this(url, SourceInfoStorageFactory.newEmptySourceInfoStorage());
     }
 
     public HttpUrlSource(String url, SourceInfoStorage sourceInfoStorage) {
+        this(url, sourceInfoStorage, new EmptyHeaderInjector());
+    }
+
+    public HttpUrlSource(String url, SourceInfoStorage sourceInfoStorage, HeaderInjector headerInjector) {
         this.sourceInfoStorage = checkNotNull(sourceInfoStorage);
+        this.headerInjector = checkNotNull(headerInjector);
         SourceInfo sourceInfo = sourceInfoStorage.get(url);
-        this.sourceInfo = sourceInfo != null ? sourceInfo : new SourceInfo(url, Integer.MIN_VALUE, ProxyCacheUtil.getSupportiveMime(url));
+        this.sourceInfo = sourceInfo != null ? sourceInfo :
+                new SourceInfo(url, Integer.MIN_VALUE, ProxyCacheUtils.getSupposablyMime(url));
+    }
+
+    public HttpUrlSource(HttpUrlSource source) {
+        this.sourceInfo = source.sourceInfo;
+        this.sourceInfoStorage = source.sourceInfoStorage;
+        this.headerInjector = source.headerInjector;
     }
 
     private HttpURLConnection openConnection(long offset, int timeout) throws IOException, ProxyCacheException {
@@ -44,7 +61,7 @@ public class HttpUrlSource implements Source {
 
         do {
             connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod("GET");
+            injectCusHeaders(connection, url);
             long end = Math.min(offset + ConstantUtil.MAX_LENGTH_ONCE, sourceInfo.getLength());
             connection.setRequestProperty("Range", "bytes=" + offset + "-" + end);
             connection.setRequestMethod(offset == HEAD_REQUEST_OFFSET ? "GET" : "HEAD");
@@ -68,6 +85,7 @@ public class HttpUrlSource implements Source {
         } while (redirected);
         return connection;
     }
+
 
     @Override
     public void open(long offset) throws ProxyCacheException {
@@ -146,6 +164,13 @@ public class HttpUrlSource implements Source {
         }
     }
 
+    private void injectCusHeaders(HttpURLConnection connection, String url) {
+        Map<String, String> extraHeaders = headerInjector.addHeader(url);
+        Set<Map.Entry<String, String>> entrieSet = extraHeaders.entrySet();
+        for (Map.Entry<String, String> header : entrieSet) {
+            connection.setRequestProperty(header.getKey(), header.getValue());
+        }
+    }
 
     public synchronized String getType() throws ProxyCacheException {
         if (TextUtils.isEmpty(sourceInfo.getContentType())) {

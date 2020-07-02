@@ -174,9 +174,9 @@ public class ProxyCache {
         }
     }
 
-    //如果每次只下载500k 一次的下载内容读取完成 可以这样写吗 todo
+    //如果每次只下载500k 一次的下载内容读取完成,即只显示具体的进度即可
     private void onSourceRead() {
-        percentsAvailable = 100;
+        //percentsAvailable = 100;
         onCachePercentsAvailableChanged(percentsAvailable);
     }
 

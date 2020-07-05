@@ -20,4 +20,15 @@ public class ConstantUtil {
      */
     public static final int HEAD_REQUEST_OFFSET = -2;
 
+    /**
+     * 代理域名
+     */
+    public static final String PROXY_HOST = "127.0.0.1";
+
+    public static final String PING_REQUEST = "ping";
+    public static final String PING_RESPONSE = "ping ok";
+
+    //默认文件缓存大小
+    public static final long DEFAULT_MAX_SIZE = 512 * 1024 * 1024;
+
 }

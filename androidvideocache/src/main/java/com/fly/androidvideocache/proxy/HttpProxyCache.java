@@ -15,15 +15,22 @@ import java.util.Locale;
 
 public class HttpProxyCache extends ProxyCache {
 
-    private final HttpUrlSource source;
-    private final FileCache cache;
     //不缓存到本地边界
     private static final float NO_CACHE_BARRIER = .2f;
+
+    private final HttpUrlSource source;
+    private final FileCache cache;
+    private CacheListener listener;
+
 
     public HttpProxyCache(HttpUrlSource source, FileCache cache) {
         super(source, cache);
         this.source = source;
         this.cache = cache;
+    }
+
+    public void registerCacheListener(CacheListener cacheListener) {
+        this.listener = cacheListener;
     }
 
     public void processRequest(GetRequest request, Socket socket) throws IOException, ProxyCacheException {
@@ -42,7 +49,7 @@ public class HttpProxyCache extends ProxyCache {
     private String newResponseHeaders(GetRequest request) throws ProxyCacheException {
         String mime = source.getType();
         boolean mimeKnown = !TextUtils.isEmpty(mime);
-        long length = cache.isComplete() ? cache.available() : source.length();
+        long length = cache.isCompleted() ? cache.available() : source.length();
         boolean lengthKnown = length >= 0;
         long contentLength = request.partial ? length - request.rangeOffset : length;
         boolean addRange = lengthKnown && request.partial;
@@ -95,5 +102,12 @@ public class HttpProxyCache extends ProxyCache {
 
     private String format(String pattern, Object... args) {
         return String.format(Locale.US, pattern, args);
+    }
+
+    @Override
+    protected void onCachePercentsAvailableChanged(int percentsAvailable) {
+        if (listener != null) {
+            listener.onCacheAvailable(cache.file, source.getUrl(), percentsAvailable);
+        }
     }
 }

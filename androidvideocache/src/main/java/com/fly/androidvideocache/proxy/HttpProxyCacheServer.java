@@ -13,12 +13,16 @@ import com.fly.androidvideocache.sourcestorage.SourceInfoStorage;
 import com.fly.androidvideocache.sourcestorage.SourceInfoStorageFactory;
 import com.fly.androidvideocache.utils.ConstantUtil;
 import com.fly.androidvideocache.utils.LogUtil;
+import com.fly.androidvideocache.utils.ProxyCacheException;
+import com.fly.androidvideocache.utils.ProxyCacheUtil;
 import com.fly.androidvideocache.utils.StorageUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -60,19 +64,131 @@ public class HttpProxyCacheServer {
         }
     }
 
-    private String isAlive() {
-        return null;
+    private boolean isAlive() {
+        return pinger.ping(3, 70);
     }
 
     private class WaitRequestRunnable implements Runnable {
 
-        public WaitRequestRunnable(CountDownLatch startSignal) {
+        private final CountDownLatch startSignal;
 
+        public WaitRequestRunnable(CountDownLatch startSignal) {
+            this.startSignal = startSignal;
         }
 
         @Override
         public void run() {
+            startSignal.countDown();
+            waitForRequest();
+        }
+    }
 
+    private void waitForRequest() {
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                Socket socket = serverSocket.accept();
+                LogUtil.d("Accept new socket" + socket);
+                socketProcessor.submit(new SocketProcessorRunnable(socket));
+            }
+        } catch (IOException e) {
+            onError(new ProxyCacheException("Error during waiting connection", e));
+        }
+    }
+
+    private void onError(ProxyCacheException exception) {
+
+    }
+
+    private class SocketProcessorRunnable implements Runnable {
+        private final Socket socket;
+
+        public SocketProcessorRunnable(Socket socket) {
+            this.socket = socket;
+        }
+
+        @Override
+        public void run() {
+            processSocket(socket);
+        }
+    }
+
+    private void processSocket(Socket socket) {
+        try {
+            GetRequest request = GetRequest.read(socket.getInputStream());
+            LogUtil.d("Request to cache proxy:" + request);
+            String url = ProxyCacheUtil.decode(request.url);
+            if (pinger.isPingRequest(url)) {
+                pinger.responseToPing(socket);
+            } else {
+                HttpProxyCacheServerClients clients = getClients(url);
+                clients.processRequest(request, socket);
+            }
+        } catch (SocketException e) {
+            LogUtil.d("Closing socket… Socket is closed by client.");
+        } catch (ProxyCacheException | IOException e) {
+            onError(new ProxyCacheException("Error processing request", e));
+        } finally {
+            releaseSocket(socket);
+            LogUtil.d("Opened connections: " + getClientsCount());
+        }
+    }
+
+    private HttpProxyCacheServerClients getClients(String url) {
+        synchronized (clientsLock) {
+            HttpProxyCacheServerClients clients = clientsMap.get(url);
+            if (clients == null) {
+                clients = new HttpProxyCacheServerClients(url, config);
+                clientsMap.put(url, clients);
+            }
+            return clients;
+        }
+    }
+
+    private void releaseSocket(Socket socket) {
+        closeSocketInput(socket);
+        closeSocketOutput(socket);
+        closeSocket(socket);
+    }
+
+    private int getClientsCount() {
+        synchronized (clientsLock) {
+            int count = 0;
+            for (HttpProxyCacheServerClients clients : clientsMap.values()) {
+                count += clients.getClientsCount();
+            }
+            return count;
+        }
+    }
+
+    private void closeSocketInput(Socket socket) {
+        try {
+            if (!socket.isInputShutdown()) {
+                socket.shutdownInput();
+            }
+        } catch (SocketException e) {
+            LogUtil.d("Releasing input stream… Socket is closed by client.");
+        } catch (IOException e) {
+            onError(new ProxyCacheException("Error closing socket input stream", e));
+        }
+    }
+
+    private void closeSocketOutput(Socket socket) {
+        try {
+            if (!socket.isOutputShutdown()) {
+                socket.shutdownOutput();
+            }
+        } catch (IOException e) {
+            LogUtil.w("Failed to close socket on proxy side: {}. It seems client have already closed connection.", e.getMessage());
+        }
+    }
+
+    private void closeSocket(Socket socket) {
+        try {
+            if (!socket.isClosed()) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            onError(new ProxyCacheException("Error closing socket", e));
         }
     }
 

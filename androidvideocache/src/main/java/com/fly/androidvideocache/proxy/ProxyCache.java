@@ -39,14 +39,14 @@ public class ProxyCache {
     public int read(byte[] buffer, long offset, int length) throws ProxyCacheException {
         ProxyCacheUtil.assertBuffer(buffer, offset, length);
         //本地缓存不能满足需要读取的长度
-        if (!cache.isComplete() && cache.available() < (offset + length) && !stopped) {
+        if (!cache.isCompleted() && cache.available() < (offset + length) && !stopped) {
             readSourceAsync();
             waitForSourceData();
             checkReadSourceErrorCount();
         }
 
         int read = cache.read(buffer, offset, length);
-        if (cache.isComplete() && percentsAvailable != 100) {
+        if (cache.isCompleted() && percentsAvailable != 100) {
             percentsAvailable = 100;
             onCachePercentsAvailableChanged(100);
         }
@@ -57,7 +57,7 @@ public class ProxyCache {
     private void readSourceAsync() {
         //正在读取中
         boolean readingInProgress = sourceReadThread != null && sourceReadThread.getState() != Thread.State.TERMINATED;
-        if (!stopped && !cache.isComplete() && !readingInProgress) {
+        if (!stopped && !cache.isCompleted() && !readingInProgress) {
             sourceReadThread = new Thread(new SourceReaderRunnable());
             sourceReadThread.start();
         }

@@ -34,5 +34,5 @@ public interface Cache {
 
     void complete() throws ProxyCacheException;
 
-    boolean isComplete();
+    boolean isCompleted();
 }

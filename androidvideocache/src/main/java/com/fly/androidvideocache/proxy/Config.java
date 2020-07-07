@@ -8,11 +8,11 @@ import com.fly.androidvideocache.sourcestorage.SourceInfoStorage;
 import java.io.File;
 
 public class Config {
-    private File cacheRoot;
-    private FileNameGenerator fileNameGenerator;
-    private DiskUsage diskUsage;
-    private SourceInfoStorage sourceInfoStorage;
-    private HeaderInjector headerInjector;
+    public File cacheRoot;
+    public FileNameGenerator fileNameGenerator;
+    public DiskUsage diskUsage;
+    public SourceInfoStorage sourceInfoStorage;
+    public HeaderInjector headerInjector;
 
     public Config(File cacheRoot, FileNameGenerator fileNameGenerator, DiskUsage diskUsage, SourceInfoStorage sourceInfoStorage, HeaderInjector headerInjector) {
         this.cacheRoot = cacheRoot;

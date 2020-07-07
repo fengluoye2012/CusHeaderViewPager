@@ -14,7 +14,7 @@ public class FileCache implements Cache {
     //临时后缀
     private static final String TEMP_POSTFIX = ".download";
 
-    private File file;
+    public File file;
     private DiskUsage diskUsage;
     private RandomAccessFile dataFile;
 
@@ -22,7 +22,7 @@ public class FileCache implements Cache {
         this(file, new UnlimitedDiskUsage());
     }
 
-    public FileCache(File file, UnlimitedDiskUsage diskUsage) throws ProxyCacheException {
+    public FileCache(File file, DiskUsage diskUsage) throws ProxyCacheException {
         try {
             if (diskUsage == null) {
                 throw new NullPointerException();
@@ -30,7 +30,9 @@ public class FileCache implements Cache {
 
             this.diskUsage = diskUsage;
             File directory = file.getParentFile();
-
+            if (directory == null) {
+                return;
+            }
             Files.makeDir(directory);
             boolean completed = file.exists();
             this.file = completed ? file : new File(file.getParentFile(), file.getName() + TEMP_POSTFIX);
@@ -62,7 +64,7 @@ public class FileCache implements Cache {
 
     @Override
     public synchronized void append(byte[] data, int length) throws ProxyCacheException {
-        if (isComplete()) {
+        if (isCompleted()) {
             throw new ProxyCacheException("Error append cache: cache file " + file + " is completed!");
         }
 
@@ -88,7 +90,7 @@ public class FileCache implements Cache {
 
     @Override
     public void complete() throws ProxyCacheException {
-        if (isComplete()) {
+        if (isCompleted()) {
             return;
         }
         close();
@@ -107,7 +109,7 @@ public class FileCache implements Cache {
     }
 
     @Override
-    public boolean isComplete() {
+    public boolean isCompleted() {
         return isTemFile(file);
     }
 

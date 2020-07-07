@@ -43,7 +43,7 @@ https://blog.csdn.net/android_zyf/article/details/63428241
 
 RandomAccessFile 使用过程中会出现IO 异常 如何解决
 
-NIO
+NIO 配合 RandomAccessFile使用
 
 
 

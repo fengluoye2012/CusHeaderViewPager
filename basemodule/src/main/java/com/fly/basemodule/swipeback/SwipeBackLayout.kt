@@ -1,11 +1,15 @@
 package com.fly.basemodule.swipeback
 
+import android.app.Activity
 import android.content.Context
 import android.content.res.TypedArray
+import android.graphics.Canvas
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.fly.basemodule.R
 import java.lang.IllegalArgumentException
@@ -94,6 +98,8 @@ class SwipeBackLayout : FrameLayout {
     private var mShadowLeft: Drawable? = null
     private var mShadowRight: Drawable? = null
     private var mShadowBottom: Drawable? = null
+
+    private var mScrimOpacity: Float = 0F
     private var mScrimColor = DEFAULT_SCRIM_COLOR
 
     private var mInlayout = false
@@ -266,6 +272,120 @@ class SwipeBackLayout : FrameLayout {
         mDragHelper.smoothSlideViewTo(mContentView, left, top)
         invalidate()
     }
+
+
+    override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
+        if (!mEnable) {
+            return false
+        }
+        return try {
+            mDragHelper.shouldInterceptTouchEvent(ev)
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            false
+        }
+    }
+
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        if (!mEnable) {
+            return false
+        }
+        mDragHelper.processTouchEvent(event)
+        return true
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        mInlayout = true
+        mContentView?.layout(mContentLeft, mContentTop,
+                mContentLeft + (mContentView?.measuredWidth ?: 0),
+                mContentTop + (mContentView?.measuredHeight ?: 0))
+        mInlayout = false
+    }
+
+    override fun requestLayout() {
+        if (!mInlayout) {
+            super.requestLayout()
+        }
+    }
+
+
+    override fun drawChild(canvas: Canvas?, child: View?, drawingTime: Long): Boolean {
+        val drawContent: Boolean = child == mContentView
+        var ret = super.drawChild(canvas, child, drawingTime)
+        if (mScrimOpacity > 0 && drawContent && mDragHelper.viewDragState != ViewDragHelper.STATE_IDLE) {
+            drawShadow(canvas, child)
+            drawScrim(canvas, child)
+        }
+        return ret
+    }
+
+    private fun drawScrim(canvas: Canvas?, child: View?) {
+        var baseAlpha = (mScrimColor and -0x1000000).ushr(24)
+        var alpha: Int = (baseAlpha * mScrimOpacity).toInt()
+        val color: Int = alpha shl 24 or (mScrimColor and 0xffffff)
+
+        when {
+            (mTrackingEdge and EDGE_LEFT) != 0 -> {
+                canvas?.clipRect(0, 0, child?.left ?: 0, height)
+            }
+
+            (mTrackingEdge and EDGE_RIGHT) != 0 -> {
+                canvas?.clipRect(child?.right ?: 0, 0, right, height)
+            }
+
+            (mTrackingEdge and EDGE_BOTTOM) != 0 -> {
+                canvas?.clipRect(child?.left ?: 0, child?.bottom ?: 0, right, height)
+            }
+        }
+        canvas?.drawColor(color)
+    }
+
+    private fun drawShadow(canvas: Canvas?, child: View?) {
+        var childRect: Rect = mTemRect
+        child?.getHitRect(childRect)
+
+        if (mEdgeFlag and EDGE_LEFT != 0) {
+            mShadowLeft?.setBounds(childRect.left - (mShadowLeft?.intrinsicWidth ?: 0),
+                    childRect.top, childRect.right, childRect.bottom)
+            mShadowLeft?.alpha = (mScrimOpacity * FULL_ALPHA).toInt()
+            canvas?.let { mShadowLeft?.draw(it) }
+        }
+
+        if (mEdgeFlag and EDGE_RIGHT != 0) {
+            mShadowRight?.setBounds(childRect.right, childRect.top,
+                    childRect.right + (mShadowRight?.intrinsicWidth ?: 0), childRect.bottom)
+
+            mShadowRight?.alpha = (mScrimOpacity * FULL_ALPHA).toInt()
+            canvas?.let { mShadowRight?.draw(it) }
+        }
+
+        if (mEdgeFlag and EDGE_BOTTOM != 0) {
+            mShadowBottom?.setBounds(childRect.left, childRect.bottom, childRect.right,
+                    childRect.bottom + (mShadowBottom?.intrinsicHeight ?: 0))
+            mShadowBottom?.alpha = (mScrimOpacity * FULL_ALPHA).toInt()
+            canvas?.let { mShadowBottom?.draw(it) }
+        }
+    }
+
+    public fun attachToActivity(act: Activity) {
+        val int = null
+        val a: TypedArray = act.theme.obtainStyledAttributes(intArrayOf(android.R.attr.windowBackground))
+        val background: Int = a.getResourceId(0, 0)
+        a.recycle()
+
+        //强转
+        val decor: ViewGroup = act.window.decorView as ViewGroup
+        val decorChild: ViewGroup = decor.getChildAt(0) as ViewGroup
+        decorChild.setBackgroundResource(background)
+        decor.removeView(decorChild)
+        addView(decorChild)
+        //自己的方法，并不是Activity的setContentView()
+        setContentView(decorChild)
+        //addSwipListener(null)
+        decor.addView(this)
+
+    }
+
 
     /**
      * Kotlin 接口
